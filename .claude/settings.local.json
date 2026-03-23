@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "WebSearch",
+      "Bash(npm view:*)",
+      "Bash(pnpm --version)",
+      "Bash(start:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(npx -y pnpm config set onlyBuiltDependenciesFile \"\")",
+      "Bash(pnpm --filter @netx/shell install)",
+      "Bash(pnpm --filter @netx/kernel install)",
+      "Bash(pnpm --filter @netx/canvas install)",
+      "Bash(CI=true pnpm install 2>&1)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/src/main.tsx)",
+      "Bash(curl -s http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/kernel/src/index.ts)",
+      "Bash(curl -s http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/canvas/src/renderer/svg-renderer.tsx)",
+      "Bash(curl -s http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/kernel/src/ui-extension-manager.ts)",
+      "Bash(curl -s http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/shell/src/layout/Shell.tsx)",
+      "Bash(curl -s http://localhost:3000/src/styles/globals.css)",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-hello-world/src/index.tsx\")",
+      "Bash(curl -s \"http://localhost:3000/node_modules/.vite/deps/zustand.js?v=fd1df253\")",
+      "Bash(curl -s \"http://localhost:3000/src/layout/Toolbar.tsx\")"
+    ]
+  }
+}

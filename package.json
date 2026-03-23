@@ -1,0 +1,20 @@
+{
+  "name": "netx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @netx/shell dev",
+    "build": "pnpm -r build",
+    "typecheck": "tsc -b",
+    "lint": "eslint packages/",
+    "test": "vitest"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.0"
+  }
+}
