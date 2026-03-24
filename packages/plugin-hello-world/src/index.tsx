@@ -25,31 +25,46 @@ export const helloWorldPlugin: PluginModule = {
     // Register toolbar items
     ctx.onDispose(
       ctx.ui.registerToolbarItem({
-        id: 'hello-add-device',
-        group: 'devices',
-        label: 'Add Device',
+        id: 'hello-delete-selected',
+        group: 'edit',
+        label: 'Delete',
         icon: ({ size }: { size: number }) => (
           <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="8" y1="5" x2="8" y2="11" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M2 4h12M5 4V3h6v1M4 4v9a1 1 0 001 1h6a1 1 0 001-1V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="7" y1="7" x2="7" y2="11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <line x1="9" y1="7" x2="9" y2="11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
         ),
         onClick: () => {
-          const x = 100 + Math.random() * 400;
-          const y = 100 + Math.random() * 300;
-          ctx.canvas.addDevice('generic', { x, y });
-          ctx.ui.notify('Device added to canvas', 'info');
+          const selected = ctx.canvas.getSelection();
+          if (selected.length === 0) {
+            ctx.ui.notify('Click a device or cable to select it first', 'info');
+            return;
+          }
+          let devices = 0, cables = 0;
+          for (const id of selected) {
+            if (ctx.canvas.getConnection(id)) {
+              ctx.canvas.removeConnection(id);
+              cables++;
+            } else if (ctx.canvas.getDevice(id)) {
+              ctx.canvas.removeDevice(id);
+              devices++;
+            }
+          }
+          const parts = [];
+          if (devices > 0) parts.push(`${devices} device${devices > 1 ? 's' : ''}`);
+          if (cables > 0) parts.push(`${cables} cable${cables > 1 ? 's' : ''}`);
+          if (parts.length > 0) ctx.ui.notify(`Removed ${parts.join(' and ')}`, 'info');
         },
-        tooltip: 'Add a generic device to the canvas',
-        priority: 0,
+        tooltip: 'Delete selected devices or cables (or press Delete key)',
+        priority: 5,
       }),
     );
 
     ctx.onDispose(
       ctx.ui.registerToolbarItem({
         id: 'hello-clear',
-        group: 'devices',
+        group: 'edit',
         label: 'Clear All',
         icon: ({ size }: { size: number }) => (
           <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
@@ -59,13 +74,17 @@ export const helloWorldPlugin: PluginModule = {
         ),
         onClick: () => {
           const devices = ctx.canvas.getDevices();
+          if (devices.length === 0) {
+            ctx.ui.notify('No devices to remove', 'info');
+            return;
+          }
           for (const d of devices) {
             ctx.canvas.removeDevice(d.id);
           }
           ctx.ui.notify(`Removed ${devices.length} devices`, 'warn');
         },
         tooltip: 'Remove all devices from canvas',
-        priority: 1,
+        priority: 6,
       }),
     );
 

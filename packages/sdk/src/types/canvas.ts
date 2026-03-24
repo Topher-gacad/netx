@@ -66,7 +66,7 @@ export interface ConnectionInstance {
 export interface CanvasAPI {
   registerDeviceType(definition: DeviceTypeDefinition): Disposable;
   registerConnectionType(definition: ConnectionTypeDefinition): Disposable;
-  addDevice(type: string, position: Point, config?: Record<string, unknown>): DeviceInstance;
+  addDevice(type: string, position: Point, config?: Record<string, unknown>, id?: string): DeviceInstance;
   removeDevice(id: ID): void;
   addConnection(
     type: string,
@@ -81,6 +81,7 @@ export interface CanvasAPI {
   getDevice(id: ID): DeviceInstance | undefined;
   getConnection(id: ID): ConnectionInstance | undefined;
   updateDevice(id: ID, updates: Partial<Pick<DeviceInstance, 'position' | 'size' | 'config' | 'label'>>): void;
+  getSelection(): ID[];
   getViewport(): { offset: Point; zoom: number };
   setViewport(offset: Point, zoom: number): void;
 }

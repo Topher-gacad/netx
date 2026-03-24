@@ -1,10 +1,22 @@
 import { useCallback } from 'react';
-import type { CanvasAPI, ID, Point } from '@netx/sdk';
+import type { CanvasAPI, EventBus, ID, Point } from '@netx/sdk';
 import type { CanvasState } from '../canvas-engine.js';
 import type { StoreApi } from 'zustand';
 
-export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI) {
+export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI, eventBus: EventBus) {
   const startConnection = useCallback((sourceDeviceId: ID, sourcePortId: string) => {
+    // Check if this port is already connected
+    const connections = Array.from(store.getState().connections.values());
+    const inUse = connections.find(
+      (c) =>
+        (c.sourceDeviceId === sourceDeviceId && c.sourcePortId === sourcePortId) ||
+        (c.targetDeviceId === sourceDeviceId && c.targetPortId === sourcePortId),
+    );
+    if (inUse) {
+      eventBus.emit('ui:notification', { message: `Port ${sourcePortId} is already connected`, level: 'warn' });
+      return;
+    }
+
     store.setState({
       connecting: {
         active: true,
@@ -13,7 +25,7 @@ export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI) {
         cursorPosition: undefined,
       },
     });
-  }, [store]);
+  }, [store, eventBus]);
 
   const updateCursor = useCallback((position: Point) => {
     store.setState((s) => {
@@ -30,6 +42,7 @@ export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI) {
 
     // Don't connect to same device
     if (connecting.sourceDeviceId === targetDeviceId) {
+      eventBus.emit('ui:notification', { message: 'Cannot connect a device to itself', level: 'warn' });
       cancelConnection();
       return;
     }
@@ -43,11 +56,12 @@ export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI) {
         targetPortId,
       );
     } catch (err) {
-      console.error('[Canvas] Failed to create connection:', err);
+      const msg = err instanceof Error ? err.message : 'Connection failed';
+      eventBus.emit('ui:notification', { message: msg, level: 'error' });
     }
 
     store.setState({ connecting: { active: false } });
-  }, [store, canvasAPI]);
+  }, [store, canvasAPI, eventBus]);
 
   const cancelConnection = useCallback(() => {
     store.setState({ connecting: { active: false } });

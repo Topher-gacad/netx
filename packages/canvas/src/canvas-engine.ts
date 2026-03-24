@@ -74,13 +74,13 @@ export function createCanvasEngine(eventBus: EventBus): { api: CanvasAPI; store:
       };
     },
 
-    addDevice(type: string, position: Point, config?: Record<string, unknown>): DeviceInstance {
+    addDevice(type: string, position: Point, config?: Record<string, unknown>, existingId?: string): DeviceInstance {
       const typeDef = store.getState().deviceTypes.get(type);
       if (!typeDef) {
         throw new Error(`Unknown device type: "${type}"`);
       }
 
-      const id = nanoid();
+      const id = existingId ?? nanoid();
       const device: DeviceInstance = {
         id,
         type,
@@ -133,6 +133,27 @@ export function createCanvasEngine(eventBus: EventBus): { api: CanvasAPI; store:
       targetDeviceId: ID,
       targetPortId: string,
     ): ConnectionInstance {
+      // Check if source port is already in use
+      const existing = Array.from(store.getState().connections.values());
+      const sourceInUse = existing.find(
+        (c) =>
+          (c.sourceDeviceId === sourceDeviceId && c.sourcePortId === sourcePortId) ||
+          (c.targetDeviceId === sourceDeviceId && c.targetPortId === sourcePortId),
+      );
+      if (sourceInUse) {
+        throw new Error(`Port ${sourcePortId} on source device is already connected`);
+      }
+
+      // Check if target port is already in use
+      const targetInUse = existing.find(
+        (c) =>
+          (c.sourceDeviceId === targetDeviceId && c.sourcePortId === targetPortId) ||
+          (c.targetDeviceId === targetDeviceId && c.targetPortId === targetPortId),
+      );
+      if (targetInUse) {
+        throw new Error(`Port ${targetPortId} on target device is already connected`);
+      }
+
       const id = nanoid();
       const connection: ConnectionInstance = {
         id,
@@ -197,6 +218,10 @@ export function createCanvasEngine(eventBus: EventBus): { api: CanvasAPI; store:
       if (updates.position) {
         eventBus.emit('canvas:device:moved', { deviceId: id, position: updates.position });
       }
+    },
+
+    getSelection(): ID[] {
+      return Array.from(store.getState().selection);
     },
 
     getViewport() {

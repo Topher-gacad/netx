@@ -19,7 +19,7 @@ export function Toolbar() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        height: '42px',
+        height: '36px',
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-color)',
         padding: '0 12px',
@@ -29,7 +29,7 @@ export function Toolbar() {
       {/* App title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
         <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '16px' }}>NetX</span>
-        <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>v0.1.0</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>v0.1.0</span>
       </div>
 
       {/* Toolbar items from plugins */}
@@ -55,7 +55,7 @@ export function Toolbar() {
                   borderRadius: '4px',
                   color: 'var(--text-primary)',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '13px',
                 }}
               >
                 <Icon size={16} />

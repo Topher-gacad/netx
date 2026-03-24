@@ -23,9 +23,10 @@ export function Panel({ slot, defaultOpen = true }: PanelProps) {
   if (panels.length === 0) return null;
 
   const isHorizontal = slot === 'bottom';
+  const panelWidth = slot === 'right' ? '300px' : '220px';
   const sizeStyle = isHorizontal
-    ? { height: open ? '200px' : '32px', width: '100%' }
-    : { width: open ? '280px' : '36px', height: '100%' };
+    ? { height: open ? '180px' : '28px', width: '100%' }
+    : { width: open ? panelWidth : '28px', height: '100%' };
 
   const ActiveComponent = panels[activeTab]?.component;
 
@@ -38,8 +39,9 @@ export function Panel({ slot, defaultOpen = true }: PanelProps) {
         borderRight: slot === 'left' ? '1px solid var(--border-color)' : undefined,
         borderTop: slot === 'bottom' ? '1px solid var(--border-color)' : undefined,
         display: 'flex',
-        flexDirection: isHorizontal ? 'column' : 'column',
+        flexDirection: 'column',
         overflow: 'hidden',
+        minHeight: 0,
         transition: 'width 0.2s, height 0.2s',
       }}
     >
@@ -92,7 +94,7 @@ export function Panel({ slot, defaultOpen = true }: PanelProps) {
 
       {/* Panel content */}
       {open && ActiveComponent && (
-        <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px' }}>
           <ActiveComponent />
         </div>
       )}

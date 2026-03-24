@@ -42,7 +42,43 @@ importers:
         specifier: ^5.0.0
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)
 
+  packages/plugin-basic-devices:
+    dependencies:
+      '@netx/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+
+  packages/plugin-cli-simulator:
+    dependencies:
+      '@netx/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+
   packages/plugin-hello-world:
+    dependencies:
+      '@netx/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+
+  packages/plugin-lab-system:
+    dependencies:
+      '@netx/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+
+  packages/plugin-packet-engine:
     dependencies:
       '@netx/sdk':
         specifier: workspace:*
@@ -65,9 +101,21 @@ importers:
       '@netx/kernel':
         specifier: workspace:*
         version: link:../kernel
+      '@netx/plugin-basic-devices':
+        specifier: workspace:*
+        version: link:../plugin-basic-devices
+      '@netx/plugin-cli-simulator':
+        specifier: workspace:*
+        version: link:../plugin-cli-simulator
       '@netx/plugin-hello-world':
         specifier: workspace:*
         version: link:../plugin-hello-world
+      '@netx/plugin-lab-system':
+        specifier: workspace:*
+        version: link:../plugin-lab-system
+      '@netx/plugin-packet-engine':
+        specifier: workspace:*
+        version: link:../plugin-packet-engine
       '@netx/sdk':
         specifier: workspace:*
         version: link:../sdk
