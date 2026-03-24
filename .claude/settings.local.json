@@ -24,7 +24,16 @@
       "Bash(curl -s http://localhost:3000/src/styles/globals.css)",
       "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-hello-world/src/index.tsx\")",
       "Bash(curl -s \"http://localhost:3000/node_modules/.vite/deps/zustand.js?v=fd1df253\")",
-      "Bash(curl -s \"http://localhost:3000/src/layout/Toolbar.tsx\")"
+      "Bash(curl -s \"http://localhost:3000/src/layout/Toolbar.tsx\")",
+      "Bash(curl -s http://localhost:3000/src/layout/Shell.tsx)",
+      "Bash(curl -s http://localhost:3000/src/plugins.config.ts)",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-cli-simulator/src/index.tsx\")",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-cli-simulator/src/cli-persistence.ts\")",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-cli-simulator/src/ios-engine.ts\")",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-cli-simulator/src/CLIPanel.tsx\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"node.*shell\")",
+      "Bash(npx kill-port:*)"
     ]
   }
 }

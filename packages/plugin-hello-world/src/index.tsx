@@ -177,6 +177,157 @@ export const helloWorldPlugin: PluginModule = {
       }),
     );
 
+    // ========== Theme Toggle ==========
+    let isDark = (localStorage.getItem('netx-theme') ?? 'dark') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+    ctx.onDispose(
+      ctx.ui.registerToolbarItem({
+        id: 'theme-toggle',
+        group: 'settings',
+        label: isDark ? 'Light' : 'Dark',
+        icon: ({ size }: { size: number }) => (
+          <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+            {isDark ? (
+              // Sun icon
+              <g>
+                <circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3" />
+                <line x1="8" y1="1" x2="8" y2="3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="8" y1="13" x2="8" y2="15" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="1" y1="8" x2="3" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="13" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </g>
+            ) : (
+              // Moon icon
+              <path d="M12 3a6 6 0 100 10 5 5 0 01-6-10z" stroke="currentColor" strokeWidth="1.3" />
+            )}
+          </svg>
+        ),
+        onClick: () => {
+          isDark = !isDark;
+          document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+          localStorage.setItem('netx-theme', isDark ? 'dark' : 'light');
+          ctx.ui.notify(`Switched to ${isDark ? 'dark' : 'light'} theme`, 'info');
+        },
+        tooltip: 'Toggle dark/light theme',
+        priority: 99,
+      }),
+    );
+
+    // ========== Export/Import Topology ==========
+    ctx.onDispose(
+      ctx.ui.registerToolbarItem({
+        id: 'export-topology',
+        group: 'file',
+        label: 'Export',
+        icon: ({ size }: { size: number }) => (
+          <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+            <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ),
+        onClick: () => {
+          const topology = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            devices: ctx.canvas.getDevices(),
+            connections: ctx.canvas.getConnections(),
+            pluginData: {} as Record<string, unknown>,
+          };
+
+          // Gather plugin data from localStorage
+          try {
+            const raw = localStorage.getItem('netx-plugin-data');
+            if (raw) topology.pluginData = JSON.parse(raw);
+          } catch { /* ignore */ }
+
+          const json = JSON.stringify(topology, null, 2);
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `netx-topology-${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          ctx.ui.notify('Topology exported', 'info');
+        },
+        tooltip: 'Export topology as JSON file',
+        priority: 50,
+      }),
+    );
+
+    ctx.onDispose(
+      ctx.ui.registerToolbarItem({
+        id: 'import-topology',
+        group: 'file',
+        label: 'Import',
+        icon: ({ size }: { size: number }) => (
+          <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+            <path d="M8 10V2M5 5l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        ),
+        onClick: () => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.json';
+          input.onchange = () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              try {
+                const data = JSON.parse(reader.result as string);
+                if (!data.devices || !data.connections) {
+                  ctx.ui.notify('Invalid topology file', 'error');
+                  return;
+                }
+
+                // Clear current topology
+                for (const d of ctx.canvas.getDevices()) {
+                  ctx.canvas.removeDevice(d.id);
+                }
+
+                // Restore devices with original IDs
+                for (const device of data.devices) {
+                  try {
+                    const added = ctx.canvas.addDevice(device.type, device.position, device.config, device.id);
+                    ctx.canvas.updateDevice(added.id, { label: device.label, size: device.size });
+                  } catch (err) {
+                    console.warn('Failed to import device:', err);
+                  }
+                }
+
+                // Restore connections
+                for (const conn of data.connections) {
+                  try {
+                    ctx.canvas.addConnection(conn.type, conn.sourceDeviceId, conn.sourcePortId, conn.targetDeviceId, conn.targetPortId);
+                  } catch (err) {
+                    console.warn('Failed to import connection:', err);
+                  }
+                }
+
+                // Restore plugin data
+                if (data.pluginData) {
+                  try {
+                    localStorage.setItem('netx-plugin-data', JSON.stringify(data.pluginData));
+                  } catch { /* ignore */ }
+                }
+
+                ctx.ui.notify(`Imported ${data.devices.length} devices and ${data.connections.length} connections. Refresh to load CLI configs.`, 'info');
+              } catch (err) {
+                ctx.ui.notify('Failed to parse topology file', 'error');
+              }
+            };
+            reader.readAsText(file);
+          };
+          input.click();
+        },
+        tooltip: 'Import topology from JSON file',
+        priority: 51,
+      }),
+    );
+
     ctx.state.set('initialized', true);
     console.log('[HelloWorld] Plugin activated');
   },

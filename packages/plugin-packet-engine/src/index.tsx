@@ -1,5 +1,5 @@
 import type { PluginModule, ID } from '@netx/sdk';
-import { simulatePacket, registerDeviceConfig } from './network-validator.js';
+import { simulatePacket, registerDeviceConfig, findDuplicateIPs } from './network-validator.js';
 import type { DeviceNetConfig } from './network-validator.js';
 import { launchPacket, clearPackets } from './packet-animator.js';
 import { PacketOverlay, setOverlayCanvasAPI } from './PacketOverlay.js';
@@ -26,10 +26,19 @@ export const packetEnginePlugin: PluginModule = {
   activate(ctx) {
     setOverlayCanvasAPI(ctx.canvas);
 
-    // Listen for CLI config changes
+    // Listen for CLI config changes + check for duplicate IPs
     ctx.onDispose(
       ctx.events.on('cli:config-changed', (payload) => {
         registerDeviceConfig(payload.deviceId, payload.config);
+
+        // Check for duplicate IPs after every config change
+        const duplicates = findDuplicateIPs(ctx.canvas);
+        for (const dup of duplicates) {
+          ctx.ui.notify(
+            `IP conflict: ${dup.ip} is assigned to ${dup.devices.join(' and ')}. Each device must have a unique IP!`,
+            'error',
+          );
+        }
       }),
     );
 
@@ -81,8 +90,14 @@ export const packetEnginePlugin: PluginModule = {
       }),
     );
 
-    // PacketOverlay is rendered directly in the SVG canvas by the Shell
-    // (passed as children to SVGRenderer)
+    // Register packet animation overlay on the canvas via extension API
+    ctx.onDispose(
+      ctx.ui.registerCanvasOverlay({
+        id: 'packet-overlay',
+        component: PacketOverlay,
+        priority: 0,
+      }),
+    );
 
     // Toolbar button to clear all packets
     ctx.onDispose(
@@ -124,7 +139,5 @@ export const packetEnginePlugin: PluginModule = {
   },
 };
 
-// Re-export for shell integration
-export { PacketOverlay } from './PacketOverlay.js';
 export { registerDeviceConfig } from './network-validator.js';
 export type { DeviceNetConfig } from './network-validator.js';

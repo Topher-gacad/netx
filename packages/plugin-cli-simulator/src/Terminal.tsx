@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { CanvasAPI, EventBus, ID } from '@netx/sdk';
 import { executeCommand, getPrompt } from './ios-engine.js';
 import type { DeviceCLIState } from './ios-engine.js';
-import { deviceStates, getOrCreateDeviceState, saveCLIStates } from './cli-persistence.js';
+import { deviceStates, getOrCreateDeviceState } from './cli-persistence.js';
 
 interface TerminalProps {
   deviceId: ID;
@@ -51,7 +51,6 @@ export function Terminal({ deviceId, deviceType, hostname, ports, canvasAPI, eve
 
     setCLIState(result.state);
     deviceStates.set(deviceId, result.state);
-    saveCLIStates();
     setOutputLines((prev) => [...prev, ...newLines]);
     setInput('');
   }, [input, cliState, canvasAPI, deviceId, eventBus]);

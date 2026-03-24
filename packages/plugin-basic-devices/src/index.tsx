@@ -3,10 +3,18 @@ import { SwitchRenderer } from './renderers/SwitchRenderer.js';
 import { RouterRenderer } from './renderers/RouterRenderer.js';
 import { PCRenderer } from './renderers/PCRenderer.js';
 import { ServerRenderer } from './renderers/ServerRenderer.js';
+import { FirewallRenderer } from './renderers/FirewallRenderer.js';
+import { HubRenderer } from './renderers/HubRenderer.js';
+import { WirelessAPRenderer } from './renderers/WirelessAPRenderer.js';
+import { L3SwitchRenderer } from './renderers/L3SwitchRenderer.js';
 import { SwitchIcon } from './icons/SwitchIcon.js';
 import { RouterIcon } from './icons/RouterIcon.js';
 import { PCIcon } from './icons/PCIcon.js';
 import { ServerIcon } from './icons/ServerIcon.js';
+import { FirewallIcon } from './icons/FirewallIcon.js';
+import { HubIcon } from './icons/HubIcon.js';
+import { WirelessAPIcon } from './icons/WirelessAPIcon.js';
+import { L3SwitchIcon } from './icons/L3SwitchIcon.js';
 import { DevicePalette, setCanvasAPI } from './DevicePalette.js';
 
 export const basicDevicesPlugin: PluginModule = {
@@ -27,14 +35,14 @@ export const basicDevicesPlugin: PluginModule = {
         label: 'Switch',
         category: 'network',
         ports: [
-          { id: 'fa0-1', label: 'Fa0/1', position: { x: 0.08, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-2', label: 'Fa0/2', position: { x: 0.18, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-3', label: 'Fa0/3', position: { x: 0.28, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-4', label: 'Fa0/4', position: { x: 0.38, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-5', label: 'Fa0/5', position: { x: 0.48, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-6', label: 'Fa0/6', position: { x: 0.58, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-7', label: 'Fa0/7', position: { x: 0.68, y: 0.7 }, accepts: ['ethernet'] },
-          { id: 'fa0-8', label: 'Fa0/8', position: { x: 0.78, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/1', label: 'Fa0/1', position: { x: 0.08, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/2', label: 'Fa0/2', position: { x: 0.18, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/3', label: 'Fa0/3', position: { x: 0.28, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/4', label: 'Fa0/4', position: { x: 0.38, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/5', label: 'Fa0/5', position: { x: 0.48, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/6', label: 'Fa0/6', position: { x: 0.58, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/7', label: 'Fa0/7', position: { x: 0.68, y: 0.7 }, accepts: ['ethernet'] },
+          { id: 'FastEthernet0/8', label: 'Fa0/8', position: { x: 0.78, y: 0.7 }, accepts: ['ethernet'] },
         ],
         defaultSize: { width: 180, height: 50 },
         renderer: SwitchRenderer,
@@ -49,10 +57,10 @@ export const basicDevicesPlugin: PluginModule = {
         label: 'Router',
         category: 'network',
         ports: [
-          { id: 'gi0-0', label: 'Gi0/0', position: { x: 0.08, y: 0.75 }, accepts: ['ethernet'] },
-          { id: 'gi0-1', label: 'Gi0/1', position: { x: 0.22, y: 0.75 }, accepts: ['ethernet'] },
-          { id: 's0-0-0', label: 'S0/0/0', position: { x: 0.42, y: 0.75 }, accepts: ['serial'] },
-          { id: 's0-0-1', label: 'S0/0/1', position: { x: 0.58, y: 0.75 }, accepts: ['serial'] },
+          { id: 'GigabitEthernet0/0', label: 'Gi0/0', position: { x: 0.08, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/1', label: 'Gi0/1', position: { x: 0.22, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'Serial0/0/0', label: 'S0/0/0', position: { x: 0.42, y: 0.75 }, accepts: ['serial'] },
+          { id: 'Serial0/0/1', label: 'S0/0/1', position: { x: 0.58, y: 0.75 }, accepts: ['serial'] },
         ],
         defaultSize: { width: 160, height: 50 },
         renderer: RouterRenderer,
@@ -66,7 +74,7 @@ export const basicDevicesPlugin: PluginModule = {
         label: 'PC',
         category: 'endpoint',
         ports: [
-          { id: 'eth0', label: 'Ethernet', position: { x: 0.5, y: 0.95 }, accepts: ['ethernet'] },
+          { id: 'Ethernet0', label: 'Ethernet0', position: { x: 0.5, y: 0.95 }, accepts: ['ethernet'] },
         ],
         defaultSize: { width: 60, height: 80 },
         renderer: PCRenderer,
@@ -80,8 +88,8 @@ export const basicDevicesPlugin: PluginModule = {
         label: 'Server',
         category: 'endpoint',
         ports: [
-          { id: 'eth0', label: 'ETH0', position: { x: 0.1, y: 0.8 }, accepts: ['ethernet'] },
-          { id: 'eth1', label: 'ETH1', position: { x: 0.25, y: 0.8 }, accepts: ['ethernet'] },
+          { id: 'Ethernet0', label: 'ETH0', position: { x: 0.1, y: 0.8 }, accepts: ['ethernet'] },
+          { id: 'Ethernet1', label: 'ETH1', position: { x: 0.25, y: 0.8 }, accepts: ['ethernet'] },
         ],
         defaultSize: { width: 120, height: 45 },
         renderer: ServerRenderer,
@@ -111,6 +119,76 @@ export const basicDevicesPlugin: PluginModule = {
         type: 'crossover',
         label: 'Ethernet (Crossover)',
         style: { color: '#ffaa00', width: 2, dashArray: '4 2' },
+      }),
+    );
+
+    // --- NEW DEVICES ---
+
+    ctx.onDispose(
+      ctx.canvas.registerDeviceType({
+        type: 'firewall',
+        label: 'Firewall',
+        category: 'security',
+        ports: [
+          { id: 'Outside', label: 'Outside', position: { x: 0.1, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'Inside', label: 'Inside', position: { x: 0.35, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'DMZ', label: 'DMZ', position: { x: 0.6, y: 0.75 }, accepts: ['ethernet'] },
+        ],
+        defaultSize: { width: 120, height: 45 },
+        renderer: FirewallRenderer,
+        icon: FirewallIcon,
+      }),
+    );
+
+    ctx.onDispose(
+      ctx.canvas.registerDeviceType({
+        type: 'hub',
+        label: 'Hub',
+        category: 'network',
+        ports: [
+          { id: 'Port1', label: 'Port 1', position: { x: 0.1, y: 0.8 }, accepts: ['ethernet'] },
+          { id: 'Port2', label: 'Port 2', position: { x: 0.35, y: 0.8 }, accepts: ['ethernet'] },
+          { id: 'Port3', label: 'Port 3', position: { x: 0.6, y: 0.8 }, accepts: ['ethernet'] },
+          { id: 'Port4', label: 'Port 4', position: { x: 0.85, y: 0.8 }, accepts: ['ethernet'] },
+        ],
+        defaultSize: { width: 100, height: 40 },
+        renderer: HubRenderer,
+        icon: HubIcon,
+      }),
+    );
+
+    ctx.onDispose(
+      ctx.canvas.registerDeviceType({
+        type: 'wireless-ap',
+        label: 'AP',
+        category: 'wireless',
+        ports: [
+          { id: 'Ethernet0', label: 'Ethernet0', position: { x: 0.5, y: 0.95 }, accepts: ['ethernet'] },
+        ],
+        defaultSize: { width: 60, height: 60 },
+        renderer: WirelessAPRenderer,
+        icon: WirelessAPIcon,
+      }),
+    );
+
+    ctx.onDispose(
+      ctx.canvas.registerDeviceType({
+        type: 'l3-switch',
+        label: 'L3 Switch',
+        category: 'network',
+        ports: [
+          { id: 'GigabitEthernet0/1', label: 'Gi0/1', position: { x: 0.06, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/2', label: 'Gi0/2', position: { x: 0.18, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/3', label: 'Gi0/3', position: { x: 0.3, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/4', label: 'Gi0/4', position: { x: 0.42, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/5', label: 'Gi0/5', position: { x: 0.54, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/6', label: 'Gi0/6', position: { x: 0.66, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/7', label: 'Gi0/7', position: { x: 0.78, y: 0.75 }, accepts: ['ethernet'] },
+          { id: 'GigabitEthernet0/8', label: 'Gi0/8', position: { x: 0.9, y: 0.75 }, accepts: ['ethernet'] },
+        ],
+        defaultSize: { width: 140, height: 45 },
+        renderer: L3SwitchRenderer,
+        icon: L3SwitchIcon,
       }),
     );
 

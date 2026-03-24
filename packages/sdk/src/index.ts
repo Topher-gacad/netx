@@ -26,6 +26,8 @@ export type {
   ToolbarItemContribution,
   ContextMenuItemContribution,
   StatusBarItemContribution,
+  CanvasOverlayContribution,
+  ModalContribution,
   UIExtensionAPI,
 } from './types/ui.js';
 

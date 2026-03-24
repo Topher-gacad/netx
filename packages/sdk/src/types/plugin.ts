@@ -19,6 +19,10 @@ export interface PluginContext {
   canvas: CanvasAPI;
   ui: UIExtensionAPI;
   onDispose(disposable: Disposable | (() => void)): void;
+  /** Register a callback to save plugin state (called on auto-save + before unload) */
+  onSave(callback: () => unknown): void;
+  /** Register a callback to restore plugin state (called on boot after topology restore) */
+  onRestore(callback: (data: unknown) => void): void;
 }
 
 export interface PluginModule {

@@ -78,7 +78,7 @@ export const labSystemPlugin: PluginModule = {
         align: 'right',
         component: () => (
           <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-            Labs: <span style={{ color: '#00ff88' }}>4 available</span>
+            Labs: <span style={{ color: '#00ff88' }}>12 available</span>
           </span>
         ),
         priority: 30,

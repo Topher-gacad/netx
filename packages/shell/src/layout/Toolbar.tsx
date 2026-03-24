@@ -19,11 +19,12 @@ export function Toolbar() {
       style={{
         display: 'flex',
         alignItems: 'center',
-        height: '36px',
+        flexWrap: 'wrap',
+        minHeight: '36px',
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-color)',
-        padding: '0 12px',
-        gap: '8px',
+        padding: '4px 12px',
+        gap: '4px 8px',
       }}
     >
       {/* App title */}

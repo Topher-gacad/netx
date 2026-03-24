@@ -102,6 +102,8 @@ export function FloatingWindow({
       onPointerUp={onDragEnd}
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      onKeyUp={(e) => e.stopPropagation()}
     >
       {/* Title bar — draggable */}
       <div

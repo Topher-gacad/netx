@@ -143,17 +143,29 @@ export function SVGRenderer({ store, canvasAPI, eventBus, children }: SVGRendere
     <svg
       ref={svgRef}
       tabIndex={0}
-      style={{ width: '100%', height: '100%', background: '#0f0f1a', touchAction: 'none', outline: 'none' }}
+      style={{ width: '100%', height: '100%', background: 'var(--canvas-bg, #0f0f1a)', touchAction: 'none', outline: 'none' }}
       onPointerDown={handleCanvasPointerDown}
       onPointerMove={handleCanvasPointerMove}
       onPointerUp={handleCanvasPointerUp}
       onClick={handleCanvasClick}
       onContextMenu={handleContextMenu}
       onWheel={panZoom.onWheel}
+      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+      onDrop={(e) => {
+        e.preventDefault();
+        const deviceType = e.dataTransfer.getData('netx/device-type');
+        if (!deviceType) return;
+        const pos = screenToCanvas(e.clientX, e.clientY);
+        try {
+          canvasAPI.addDevice(deviceType, pos);
+        } catch (err) {
+          console.warn('Drop failed:', err);
+        }
+      }}
     >
       <defs>
         <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="var(--canvas-grid, #1a1a2e)" strokeWidth="0.5" />
         </pattern>
         <filter id="device-glow">
           <feGaussianBlur stdDeviation="3" result="blur" />

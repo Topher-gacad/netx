@@ -6,66 +6,44 @@ import { KernelContext } from './context/KernelContext.js';
 import type { KernelInstance } from './context/KernelContext.js';
 import { App } from './App.js';
 import { enableAutoSave, restoreTopology } from './persistence.js';
+import { enableUndoRedo } from './undo-redo.js';
 import './styles/globals.css';
 
-// Import plugins
-import { helloWorldPlugin } from '@netx/plugin-hello-world';
-import { basicDevicesPlugin } from '@netx/plugin-basic-devices';
-import { cliSimulatorPlugin, restoreCLIStates, cliDeviceStates } from '@netx/plugin-cli-simulator';
-import { packetEnginePlugin } from '@netx/plugin-packet-engine';
-import { labSystemPlugin } from '@netx/plugin-lab-system';
+// Plugin registry — the ONLY place plugins are listed
+import { plugins } from './plugins.config.js';
 
 async function bootstrap() {
-  // 1. Create kernel infrastructure
+  console.log('[Boot] Step 1: Create kernel');
   const eventBus = createEventBus();
   const { api: canvasAPI, store: canvasStore } = createCanvasEngine(eventBus);
   const uiAPI = createUIExtensionAPI(eventBus);
 
-  // 2. Create plugin system
+  console.log('[Boot] Step 2: Create plugin system');
   const registry = new PluginRegistry();
   const loader = new PluginLoader(registry, eventBus, canvasAPI, uiAPI);
 
-  // 3. Register plugins
-  registry.register(basicDevicesPlugin);
-  registry.register(cliSimulatorPlugin);
-  registry.register(packetEnginePlugin);
-  registry.register(labSystemPlugin);
-  registry.register(helloWorldPlugin);
-
-  // 4. Load all plugins (registers device types, CLI, packet engine, labs)
-  await loader.loadAll();
-
-  // 5. Restore topology with ORIGINAL device IDs (no remapping needed)
-  restoreTopology(canvasAPI);
-
-  // 6. Restore CLI configs (IDs match because topology kept original IDs)
-  restoreCLIStates();
-
-  // 7. Sync all CLI configs to packet engine + canvas labels
-  for (const [id, state] of cliDeviceStates) {
-    eventBus.emit('cli:config-changed', {
-      deviceId: id,
-      config: {
-        hostname: state.hostname,
-        interfaces: state.interfaces,
-        staticRoutes: state.staticRoutes,
-      },
-    });
-    const ips: string[] = [];
-    for (const [, iface] of state.interfaces) {
-      if (iface.ip) ips.push(`${iface.ip}/${iface.mask ?? ''}`);
-    }
-    const device = canvasAPI.getDevice(id);
-    if (device) {
-      canvasAPI.updateDevice(id, {
-        label: state.hostname,
-        config: { ...device.config, ips, hostname: state.hostname },
-      });
-    }
+  console.log('[Boot] Step 3: Register plugins');
+  for (const plugin of plugins) {
+    registry.register(plugin);
   }
 
-  // 8. Enable auto-save
+  console.log('[Boot] Step 4: Load all plugins');
+  await loader.loadAll();
+
+  console.log('[Boot] Step 5: Restore topology');
+  restoreTopology(canvasAPI);
+
+  console.log('[Boot] Step 6: Restore plugin data');
+  loader.restoreAllPluginData();
+
+  // 7. Enable auto-save for topology
   enableAutoSave(canvasStore);
+
+  // 8. Enable undo/redo (Ctrl+Z / Ctrl+Y)
+  enableUndoRedo(canvasStore);
+
+  // 9. Auto-save plugin data periodically
+  setInterval(() => loader.saveAllPluginData(), 2000);
 
   // 9. Render
   const kernel: KernelInstance = {

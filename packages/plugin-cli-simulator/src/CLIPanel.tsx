@@ -1,10 +1,10 @@
 import { Terminal } from './Terminal.js';
-import type { CanvasAPI, EventBus, ID } from '@netx/sdk';
+import type { CanvasAPI, EventBus, UIExtensionAPI, ID } from '@netx/sdk';
 import { useState, useEffect } from 'react';
 
 let canvasRef: CanvasAPI | null = null;
 let eventBusRef: EventBus | null = null;
-let forceUpdateFn: (() => void) | null = null;
+let uiRef: UIExtensionAPI | null = null;
 
 interface ActiveDevice {
   id: ID;
@@ -14,59 +14,37 @@ interface ActiveDevice {
 }
 
 let activeDevice: ActiveDevice | null = null;
-let modalVisible = false;
 
-// Shell registers a callback to know when modal state changes
-const modalListeners = new Set<() => void>();
+export function setCanvasRef(api: CanvasAPI) { canvasRef = api; }
+export function setEventBusRef(bus: EventBus) { eventBusRef = bus; }
+export function setUIRef(ui: UIExtensionAPI) { uiRef = ui; }
 
-export function onModalChange(fn: () => void): () => void {
-  modalListeners.add(fn);
-  return () => modalListeners.delete(fn);
-}
-
-function notifyModalChange() {
-  forceUpdateFn?.();
-  for (const fn of modalListeners) fn();
-}
-
-export function setActiveDevice(id: ID, type: string, hostname: string, ports: string[]) {
+export function openCLIForDevice(id: ID, type: string, hostname: string, ports: string[]) {
   activeDevice = { id, type, hostname, ports };
-  modalVisible = true;
-  notifyModalChange();
+  // Update modal title and make it visible via the UI extension API
+  uiRef?.updateModal('cli-terminal', {
+    title: `CLI — ${hostname} (${type})`,
+    visible: true,
+  });
 }
 
-export function closeModal() {
-  modalVisible = false;
-  notifyModalChange();
+export function closeCLI() {
+  uiRef?.updateModal('cli-terminal', { visible: false });
 }
 
-export function isModalOpen() {
-  return modalVisible;
-}
-
-export function getActiveDeviceInfo(): ActiveDevice | null {
-  return activeDevice;
-}
-
-export function setCanvasRef(api: CanvasAPI) {
-  canvasRef = api;
-}
-
-export function setEventBusRef(bus: EventBus) {
-  eventBusRef = bus;
-}
-
-export function getActiveDeviceId(): ID | null {
-  return activeDevice?.id ?? null;
-}
-
-// This component renders the terminal content inside the floating window
+// The component rendered inside the modal
 export function CLIModalContent() {
   const [, setTick] = useState(0);
 
+  // Re-render when active device changes
   useEffect(() => {
-    forceUpdateFn = () => setTick((t) => t + 1);
-    return () => { forceUpdateFn = null; };
+    const handler = () => setTick((t) => t + 1);
+    // Listen for modal visibility changes to trigger re-render
+    const interval = setInterval(() => {
+      // Simple polling to detect device changes
+      handler();
+    }, 300);
+    return () => clearInterval(interval);
   }, []);
 
   if (!activeDevice || !canvasRef) {
@@ -76,7 +54,7 @@ export function CLIModalContent() {
         height: '100%', color: 'var(--text-secondary)', fontSize: '13px',
         fontFamily: 'monospace',
       }}>
-        Click a device on the canvas to open its CLI
+        Double-click a device to open its CLI
       </div>
     );
   }

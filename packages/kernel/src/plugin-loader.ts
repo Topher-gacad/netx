@@ -3,9 +3,13 @@ import { PluginRegistry } from './plugin-registry.js';
 import { createScopedStore } from './state-store.js';
 import { resolveDependencyOrder } from './dependency-resolver.js';
 
+const PLUGIN_DATA_KEY = 'netx-plugin-data';
+
 interface ActivePlugin {
   module: PluginModule;
   disposables: Disposable[];
+  saveCallback?: () => unknown;
+  restoreCallback?: (data: unknown) => void;
 }
 
 export class PluginLoader {
@@ -16,7 +20,10 @@ export class PluginLoader {
     private eventBus: EventBus,
     private canvasAPI: CanvasAPI,
     private uiAPI: UIExtensionAPI,
-  ) {}
+  ) {
+    // Save all plugin data before page unload
+    window.addEventListener('beforeunload', () => this.saveAllPluginData());
+  }
 
   async loadAll(): Promise<void> {
     const manifests = this.registry.getManifests();
@@ -30,9 +37,7 @@ export class PluginLoader {
   }
 
   async activate(pluginId: string): Promise<void> {
-    if (this.active.has(pluginId)) {
-      return; // already active
-    }
+    if (this.active.has(pluginId)) return;
 
     const module = this.registry.getModule(pluginId);
     if (!module) {
@@ -41,6 +46,7 @@ export class PluginLoader {
     }
 
     const disposables: Disposable[] = [];
+    const activePlugin: ActivePlugin = { module, disposables };
 
     const context: PluginContext = {
       manifest: module.manifest,
@@ -55,19 +61,65 @@ export class PluginLoader {
           disposables.push(disposable);
         }
       },
+      onSave(callback: () => unknown) {
+        activePlugin.saveCallback = callback;
+      },
+      onRestore(callback: (data: unknown) => void) {
+        activePlugin.restoreCallback = callback;
+      },
     };
 
     try {
       await module.activate(context);
-      this.active.set(pluginId, { module, disposables });
+      this.active.set(pluginId, activePlugin);
       this.eventBus.emit('plugin:activated', { pluginId });
     } catch (err) {
       console.error(`[Kernel] Failed to activate plugin "${pluginId}":`, err);
       this.eventBus.emit('plugin:error', { pluginId, error: err });
-      // Dispose anything that was registered before the error
       for (const d of disposables) {
         try { d.dispose(); } catch { /* ignore */ }
       }
+    }
+  }
+
+  /** Call all plugins' onRestore callbacks with their saved data */
+  restoreAllPluginData(): void {
+    try {
+      const raw = localStorage.getItem(PLUGIN_DATA_KEY);
+      if (!raw) return;
+      const allData: Record<string, unknown> = JSON.parse(raw);
+
+      for (const [pluginId, plugin] of this.active) {
+        if (plugin.restoreCallback && allData[pluginId] !== undefined) {
+          try {
+            plugin.restoreCallback(allData[pluginId]);
+            console.log(`[Kernel] Restored data for plugin "${pluginId}"`);
+          } catch (err) {
+            console.error(`[Kernel] Failed to restore data for plugin "${pluginId}":`, err);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Kernel] Failed to restore plugin data:', err);
+    }
+  }
+
+  /** Call all plugins' onSave callbacks and persist to localStorage */
+  saveAllPluginData(): void {
+    const allData: Record<string, unknown> = {};
+    for (const [pluginId, plugin] of this.active) {
+      if (plugin.saveCallback) {
+        try {
+          allData[pluginId] = plugin.saveCallback();
+        } catch (err) {
+          console.error(`[Kernel] Failed to save data for plugin "${pluginId}":`, err);
+        }
+      }
+    }
+    try {
+      localStorage.setItem(PLUGIN_DATA_KEY, JSON.stringify(allData));
+    } catch (err) {
+      console.warn('[Kernel] Failed to persist plugin data:', err);
     }
   }
 

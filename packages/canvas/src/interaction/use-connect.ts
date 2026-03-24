@@ -47,9 +47,38 @@ export function useConnect(store: StoreApi<CanvasState>, canvasAPI: CanvasAPI, e
       return;
     }
 
+    // Check Serial-to-Ethernet compatibility
+    const sourceIsSerial = connecting.sourcePortId.toLowerCase().startsWith('serial');
+    const targetIsSerial = targetPortId.toLowerCase().startsWith('serial');
+    if (sourceIsSerial !== targetIsSerial) {
+      eventBus.emit('ui:notification', {
+        message: 'Cannot connect Serial port to Ethernet port. Serial connects to Serial only (WAN links).',
+        level: 'error',
+      });
+      cancelConnection();
+      return;
+    }
+
+    // Warn if devices are already connected via another link
+    const existingConnections = Array.from(store.getState().connections.values());
+    const alreadyConnected = existingConnections.some(
+      (c) =>
+        (c.sourceDeviceId === connecting.sourceDeviceId && c.targetDeviceId === targetDeviceId) ||
+        (c.sourceDeviceId === targetDeviceId && c.targetDeviceId === connecting.sourceDeviceId),
+    );
+    if (alreadyConnected) {
+      eventBus.emit('ui:notification', {
+        message: 'These devices are already connected. Adding a second link (only useful for different subnets).',
+        level: 'warn',
+      });
+    }
+
+    // Determine connection type based on port types
+    const connType = sourceIsSerial ? 'serial' : 'ethernet';
+
     try {
       canvasAPI.addConnection(
-        'ethernet',
+        connType,
         connecting.sourceDeviceId,
         connecting.sourcePortId,
         targetDeviceId,
