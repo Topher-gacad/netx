@@ -1,7 +1,8 @@
 import type { PluginModule } from '@netx/sdk';
 import { CLIModalContent, setCanvasRef, setEventBusRef, setUIRef, openCLIForDevice, closeCLI } from './CLIPanel.js';
 import { deviceStates } from './cli-persistence.js';
-import type { DeviceCLIState, InterfaceConfig } from './ios-engine.js';
+import type { DeviceCLIState, InterfaceConfig, DHCPPool } from './ios-engine.js';
+import { registerDHCPServer } from './ios-engine.js';
 
 export const cliSimulatorPlugin: PluginModule = {
   manifest: {
@@ -32,13 +33,59 @@ export const cliSimulatorPlugin: PluginModule = {
       }),
     );
 
-    // Listen for double-click on devices to open CLI modal
+    // Devices that have CLI access
+    // Laptop has its own launcher in basic-devices plugin
+    const cliDevices = ['router', 'switch', 'switch-24', 'l3-switch', 'firewall', 'server', 'pc', 'wireless-ap'];
+    // Devices with NO config interface (show message instead)
+    const noConfigDevices = ['hub', 'switch-unmanaged', 'ip-phone'];
+    // Web GUI devices are handled by their own plugins (pfsense, tplink, nas)
+
     ctx.onDispose(
       ctx.events.on('canvas:device:dblclick', (payload) => {
         const device = ctx.canvas.getDevice(payload.deviceId);
         if (!device) return;
-        const portNames = getPortNames(device.type);
-        openCLIForDevice(device.id, device.type, device.label, portNames);
+
+        if (cliDevices.includes(device.type)) {
+          const portNames = getPortNames(device.type);
+          openCLIForDevice(device.id, device.type, device.label, portNames);
+        } else if (noConfigDevices.includes(device.type)) {
+          // Show a helpful message
+          const messages: Record<string, string> = {
+            'hub': 'Hubs have no configuration — they broadcast all traffic to all ports automatically.',
+            'switch-unmanaged': 'Unmanaged switches have no configuration — just plug in cables and they forward traffic.',
+            'ip-phone': 'IP Phones are configured through the call server (CUCM), not directly. Connect it: Switch→Phone(SW)→Phone(PC)→PC.',
+            'printer': 'Network printers are configured through their built-in web interface (not simulated). Just assign a static IP via the printer\'s LCD panel.',
+            'nas': 'NAS devices are configured through their web interface (e.g., Synology DSM). Just connect it to the network and assign an IP.',
+          };
+          ctx.ui.notify(messages[device.type] ?? 'This device has no configuration interface.', 'info');
+        }
+        // pfsense and tplink handled by basic-devices plugin
+      }),
+    );
+
+    // Listen for laptop CLI open request (from laptop launcher)
+    ctx.onDispose(
+      ctx.events.on('laptop:open-cli', (payload: unknown) => {
+        const { deviceId, deviceType, label } = payload as { deviceId: string; deviceType: string; label: string };
+        const portNames = getPortNames(deviceType);
+        openCLIForDevice(deviceId, deviceType, label, portNames);
+      }),
+    );
+
+    // Listen for pfSense/TP-Link DHCP server registration
+    ctx.onDispose(
+      ctx.events.on('pfsense:dhcp-available', (payload: unknown) => {
+        const data = payload as { deviceId: string; network: string; mask: string; gateway: string; rangeStart: string; rangeEnd: string };
+        const startNum = parseInt(data.rangeStart.split('.').pop() ?? '100');
+        const pools = new Map<string, DHCPPool>();
+        pools.set('lan', {
+          name: 'lan',
+          network: data.network,
+          mask: data.mask,
+          gateway: data.gateway,
+          nextAddress: startNum,
+        });
+        registerDHCPServer(data.deviceId, pools);
       }),
     );
 
@@ -85,26 +132,7 @@ export const cliSimulatorPlugin: PluginModule = {
       console.log(`[CLISimulator] Restored ${Object.keys(data).length} device configs`);
     });
 
-    // Toolbar button
-    ctx.onDispose(
-      ctx.ui.registerToolbarItem({
-        id: 'cli-toggle',
-        group: 'tools',
-        label: 'CLI',
-        icon: ({ size }: { size: number }) => (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-            <polyline points="6,10 10,14 6,18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <line x1="12" y1="18" x2="18" y2="18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        ),
-        onClick: () => {
-          ctx.ui.notify('Double-click a device on the canvas to open its CLI', 'info');
-        },
-        tooltip: 'CLI Terminal — double-click a device',
-        priority: 10,
-      }),
-    );
+    // CLI opens via double-click on devices — no toolbar button needed
 
     // Status bar
     ctx.onDispose(
@@ -142,6 +170,10 @@ function getPortNames(deviceType: string): string[] {
       ];
     case 'firewall':
       return ['Outside', 'Inside', 'DMZ'];
+    case 'pfsense':
+      return ['WAN', 'LAN', 'OPT1', 'OPT2'];
+    case 'tplink':
+      return ['WAN', 'LAN1', 'LAN2', 'LAN3', 'LAN4'];
     case 'hub':
       return ['Port1', 'Port2', 'Port3', 'Port4'];
     case 'wireless-ap':
@@ -150,6 +182,18 @@ function getPortNames(deviceType: string): string[] {
       return ['Ethernet0', 'Ethernet1'];
     case 'pc':
       return ['Ethernet0'];
+    case 'laptop':
+      return ['Ethernet0'];
+    case 'ip-phone':
+      return ['SW', 'PC'];
+    case 'printer':
+      return ['Ethernet0'];
+    case 'nas':
+      return ['Ethernet0', 'Ethernet1'];
+    case 'switch-24':
+      return Array.from({ length: 24 }, (_, i) => `FastEthernet0/${i + 1}`);
+    case 'switch-unmanaged':
+      return ['Port1', 'Port2', 'Port3', 'Port4', 'Port5'];
     default:
       return ['Ethernet0'];
   }

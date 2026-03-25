@@ -177,6 +177,28 @@ export const helloWorldPlugin: PluginModule = {
       }),
     );
 
+    // ========== Cable Crimping Simulator ==========
+    ctx.onDispose(
+      ctx.ui.registerToolbarItem({
+        id: 'crimping-sim',
+        group: 'learn',
+        label: 'Crimping',
+        icon: ({ size }: { size: number }) => (
+          <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+            <rect x="5" y="1" width="6" height="10" rx="1" stroke="currentColor" strokeWidth="1.2" />
+            <line x1="7" y1="3" x2="7" y2="9" stroke="currentColor" strokeWidth="0.8" />
+            <line x1="9" y1="3" x2="9" y2="9" stroke="currentColor" strokeWidth="0.8" />
+            <rect x="4" y="11" width="8" height="4" rx="1" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+        ),
+        onClick: () => {
+          window.location.hash = '#/crimping';
+        },
+        tooltip: 'Cable Crimping Simulator — practice making Ethernet cables',
+        priority: 13,
+      }),
+    );
+
     // ========== Theme Toggle ==========
     let isDark = (localStorage.getItem('netx-theme') ?? 'dark') === 'dark';
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');

@@ -153,13 +153,15 @@ export function simulatePacket(
     const hop = path[i];
     const device = canvasAPI.getDevice(hop.fromDeviceId);
 
-    // Switches/hubs are L2 — transparent forwarding, no config needed
-    if (device && (device.type === 'switch' || device.type === 'hub')) {
+    // L2 devices — transparent forwarding, no config needed for same-subnet traffic
+    // TP-Link acts as L2 switch for LAN/WiFi clients on the same subnet
+    const l2Types = ['switch', 'switch-24', 'switch-unmanaged', 'hub', 'wireless-ap', 'tplink'];
+    if (device && l2Types.includes(device.type)) {
       continue;
     }
 
     const hopConfig = deviceConfigs.get(hop.fromDeviceId);
-    if (!hopConfig && device && device.type !== 'switch' && device.type !== 'hub') {
+    if (!hopConfig && device && !l2Types.includes(device.type)) {
       return {
         success: false,
         hops: path,

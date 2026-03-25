@@ -17,12 +17,28 @@ export function triggerLabCheck() {
   forceUpdateFn?.();
 }
 
+export function startLabById(labId: string) {
+  const lab = LABS.find((l) => l.id === labId);
+  if (!lab) return;
+  activeLab = lab;
+  labProgress = {
+    labId: lab.id,
+    completed: new Set(),
+    startedAt: Date.now(),
+  };
+  forceUpdateFn?.();
+}
+
 export function LabPanel() {
   const [, setTick] = useState(0);
   const [view, setView] = useState<'list' | 'active'>(activeLab ? 'active' : 'list');
 
   useEffect(() => {
-    forceUpdateFn = () => setTick((t) => t + 1);
+    forceUpdateFn = () => {
+      setTick((t) => t + 1);
+      // Sync view when lab is started externally (from Lessons page)
+      if (activeLab) setView('active');
+    };
     return () => { forceUpdateFn = null; };
   }, []);
 
@@ -51,6 +67,10 @@ export function LabPanel() {
 
 function LabList({ onStart }: { onStart: (lab: Lab) => void }) {
   const diffColors = { beginner: '#00ff88', intermediate: '#ffaa00', advanced: '#ff4444' };
+  const onCrimpingPage = window.location.hash.startsWith('#/crimping');
+  const visibleLabs = onCrimpingPage
+    ? LABS.filter((l) => l.id.includes('crimping'))
+    : LABS.filter((l) => !l.id.includes('crimping'));
 
   return (
     <div>
@@ -58,10 +78,10 @@ function LabList({ onStart }: { onStart: (lab: Lab) => void }) {
         fontSize: '14px', fontWeight: 600, color: 'var(--accent)',
         marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px',
       }}>
-        Labs
+        {onCrimpingPage ? 'Crimping Labs' : 'Labs'}
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {LABS.map((lab) => (
+        {visibleLabs.map((lab) => (
           <button
             key={lab.id}
             onClick={() => onStart(lab)}

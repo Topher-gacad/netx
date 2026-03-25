@@ -133,25 +133,26 @@ export function createCanvasEngine(eventBus: EventBus): { api: CanvasAPI; store:
       targetDeviceId: ID,
       targetPortId: string,
     ): ConnectionInstance {
-      // Check if source port is already in use
-      const existing = Array.from(store.getState().connections.values());
-      const sourceInUse = existing.find(
-        (c) =>
-          (c.sourceDeviceId === sourceDeviceId && c.sourcePortId === sourcePortId) ||
-          (c.targetDeviceId === sourceDeviceId && c.targetPortId === sourcePortId),
-      );
-      if (sourceInUse) {
-        throw new Error(`Port ${sourcePortId} on source device is already connected`);
-      }
+      // Skip port checks for wireless — wireless is virtual, no physical port conflict
+      if (type !== 'wireless') {
+        const existing = Array.from(store.getState().connections.values());
+        const sourceInUse = existing.find(
+          (c) =>
+            (c.sourceDeviceId === sourceDeviceId && c.sourcePortId === sourcePortId) ||
+            (c.targetDeviceId === sourceDeviceId && c.targetPortId === sourcePortId),
+        );
+        if (sourceInUse) {
+          throw new Error(`Port ${sourcePortId} on source device is already connected`);
+        }
 
-      // Check if target port is already in use
-      const targetInUse = existing.find(
-        (c) =>
-          (c.sourceDeviceId === targetDeviceId && c.sourcePortId === targetPortId) ||
-          (c.targetDeviceId === targetDeviceId && c.targetPortId === targetPortId),
-      );
-      if (targetInUse) {
-        throw new Error(`Port ${targetPortId} on target device is already connected`);
+        const targetInUse = existing.find(
+          (c) =>
+            (c.sourceDeviceId === targetDeviceId && c.sourcePortId === targetPortId) ||
+            (c.targetDeviceId === targetDeviceId && c.targetPortId === targetPortId),
+        );
+        if (targetInUse) {
+          throw new Error(`Port ${targetPortId} on target device is already connected`);
+        }
       }
 
       const id = nanoid();

@@ -99,27 +99,7 @@ export const packetEnginePlugin: PluginModule = {
       }),
     );
 
-    // Toolbar button to clear all packets
-    ctx.onDispose(
-      ctx.ui.registerToolbarItem({
-        id: 'clear-packets',
-        group: 'simulation',
-        label: 'Clear Sim',
-        icon: ({ size }: { size: number }) => (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <path d="M3 6h18M8 6V4h8v2M5 6v14a2 2 0 002 2h10a2 2 0 002-2V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        ),
-        onClick: () => {
-          clearPackets();
-          ctx.ui.notify('Simulation cleared', 'info');
-        },
-        tooltip: 'Clear all packet animations',
-        priority: 20,
-      }),
-    );
+    // Packet animations auto-clear — no toolbar button needed
 
     // Status bar indicator
     ctx.onDispose(

@@ -10,13 +10,43 @@ import { NotificationToast } from '../components/NotificationToast.js';
 import { ErrorBoundary } from '../components/ErrorBoundary.js';
 import { FloatingWindow } from '../components/FloatingWindow.js';
 import { useResponsive } from '../hooks/useResponsive.js';
+import { LessonsPage, bootcampStore } from '@netx/plugin-bootcamp';
+import { AdminPanel } from '../auth/AdminPanel.js';
+import { CrimpingSimulator } from '../crimping/CrimpingSimulator.js';
+import { useAuth } from '../auth/AuthContext.js';
+import { useState, useEffect } from 'react';
 
 export function Shell() {
   const { eventBus, canvasAPI, canvasStore } = useKernel();
+  const { user } = useAuth();
   const screen = useResponsive();
+  const [adminOpen, setAdminOpen] = useState(window.location.hash === '#/admin');
+  const [crimpingOpen, setCrimpingOpen] = useState(window.location.hash.startsWith('#/crimping'));
 
   const canvasOverlays = useStore(uiStore, (s) => s.canvasOverlays);
   const modals = useStore(uiStore, (s) => s.modals);
+  const lessonsActive = useStore(bootcampStore, (s) => s.active);
+
+  // Listen for admin panel toggle
+  useEffect(() => {
+    const handler = () => {
+      const newState = !adminOpen;
+      setAdminOpen(newState);
+      window.location.hash = newState ? '#/admin' : '#/canvas';
+    };
+    window.addEventListener('netx:toggle-admin', handler);
+    return () => window.removeEventListener('netx:toggle-admin', handler);
+  }, [adminOpen]);
+
+  // Sync admin state with hash
+  useEffect(() => {
+    const handler = () => {
+      setAdminOpen(window.location.hash === '#/admin');
+      setCrimpingOpen(window.location.hash.startsWith('#/crimping'));
+    };
+    window.addEventListener('hashchange', handler);
+    return () => window.removeEventListener('hashchange', handler);
+  }, []);
 
   const sortedOverlays = useMemo(
     () => [...canvasOverlays].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0)),
@@ -31,10 +61,16 @@ export function Shell() {
       style={{
         display: 'grid',
         gridTemplateRows: 'auto 1fr auto',
-        gridTemplateColumns: isMobile ? '1fr' : 'auto 1fr auto',
-        gridTemplateAreas: isMobile
-          ? `"toolbar" "canvas" "statusbar"`
-          : `"toolbar toolbar toolbar" "left canvas right" "statusbar statusbar statusbar"`,
+        gridTemplateColumns: lessonsActive ? '1fr'
+          : crimpingOpen ? '1fr auto'
+          : (isMobile ? '1fr' : 'auto 1fr auto'),
+        gridTemplateAreas: lessonsActive
+          ? `"toolbar" "main" "statusbar"`
+          : crimpingOpen
+            ? `"toolbar toolbar" "main right" "statusbar statusbar"`
+            : (isMobile
+              ? `"toolbar" "main" "statusbar"`
+              : `"toolbar toolbar toolbar" "left main right" "statusbar statusbar statusbar"`),
         height: '100vh',
         width: '100vw',
         overflow: 'hidden',
@@ -46,7 +82,8 @@ export function Shell() {
         </ErrorBoundary>
       </div>
 
-      {!isMobile && (
+      {/* Left panel — hidden in lessons mode and mobile */}
+      {!lessonsActive && !crimpingOpen && !isMobile && (
         <div style={{ gridArea: 'left', overflow: 'hidden', minHeight: 0 }}>
           <ErrorBoundary name="LeftPanel">
             <Panel slot="left" defaultOpen={!isTablet} />
@@ -54,25 +91,37 @@ export function Shell() {
         </div>
       )}
 
-      <div style={{ gridArea: 'canvas', overflow: 'hidden', position: 'relative', minHeight: 0 }}>
-        <ErrorBoundary name="Canvas">
-          <SVGRenderer store={canvasStore} canvasAPI={canvasAPI} eventBus={eventBus}>
-            {sortedOverlays.map((overlay) => {
-              const Comp = overlay.component;
-              return (
-                <ErrorBoundary key={overlay.id} name={`Overlay:${overlay.id}`}>
-                  <Comp />
-                </ErrorBoundary>
-              );
-            })}
-          </SVGRenderer>
-        </ErrorBoundary>
+      {/* Main area — switches between Canvas and Lessons */}
+      <div style={{ gridArea: 'main', overflow: 'hidden', position: 'relative', minHeight: 0 }}>
+        {crimpingOpen ? (
+          <ErrorBoundary name="CrimpingSimulator">
+            <CrimpingSimulator />
+          </ErrorBoundary>
+        ) : lessonsActive ? (
+          <ErrorBoundary name="LessonsPage">
+            <LessonsPage />
+          </ErrorBoundary>
+        ) : (
+          <ErrorBoundary name="Canvas">
+            <SVGRenderer store={canvasStore} canvasAPI={canvasAPI} eventBus={eventBus}>
+              {sortedOverlays.map((overlay) => {
+                const Comp = overlay.component;
+                return (
+                  <ErrorBoundary key={overlay.id} name={`Overlay:${overlay.id}`}>
+                    <Comp />
+                  </ErrorBoundary>
+                );
+              })}
+            </SVGRenderer>
+          </ErrorBoundary>
+        )}
       </div>
 
-      {!isMobile && (
+      {/* Right panel — hidden in lessons mode and mobile */}
+      {!lessonsActive && !isMobile && (
         <div style={{ gridArea: 'right', overflow: 'hidden', minHeight: 0 }}>
           <ErrorBoundary name="RightPanel">
-            <Panel slot="right" defaultOpen={!isTablet} />
+            <Panel slot="right" defaultOpen={crimpingOpen || !isTablet} />
           </ErrorBoundary>
         </div>
       )}
@@ -83,7 +132,8 @@ export function Shell() {
         </ErrorBoundary>
       </div>
 
-      {modals.map((modal) => (
+      {/* Floating modals — only in canvas mode */}
+      {!lessonsActive && modals.map((modal) => (
         <ErrorBoundary key={modal.id} name={`Modal:${modal.id}`}>
           <FloatingWindow
             title={modal.title}
@@ -100,6 +150,23 @@ export function Shell() {
           </FloatingWindow>
         </ErrorBoundary>
       ))}
+
+      {/* Admin panel */}
+      {user?.role === 'admin' && (
+        <FloatingWindow
+          title="Admin — User Management"
+          visible={adminOpen}
+          onClose={() => setAdminOpen(false)}
+          defaultX={Math.max(20, (window.innerWidth - 750) / 2)}
+          defaultY={80}
+          defaultWidth={750}
+          defaultHeight={450}
+          minWidth={500}
+          minHeight={300}
+        >
+          <AdminPanel />
+        </FloatingWindow>
+      )}
 
       <NotificationToast eventBus={eventBus} />
     </div>

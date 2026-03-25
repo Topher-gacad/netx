@@ -16,6 +16,7 @@
     "@netx/plugin-basic-devices": "workspace:*",
     "@netx/plugin-cli-simulator": "workspace:*",
     "@netx/plugin-packet-engine": "workspace:*",
+    "@netx/plugin-bootcamp": "workspace:*",
     "@netx/plugin-lab-system": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

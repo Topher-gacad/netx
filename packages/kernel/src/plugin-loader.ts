@@ -123,6 +123,35 @@ export class PluginLoader {
     }
   }
 
+  /** Collect all plugin data as an object (without saving to localStorage) */
+  collectAllPluginData(): Record<string, unknown> {
+    const allData: Record<string, unknown> = {};
+    for (const [pluginId, plugin] of this.active) {
+      if (plugin.saveCallback) {
+        try {
+          allData[pluginId] = plugin.saveCallback();
+        } catch (err) {
+          console.error(`[Kernel] Failed to collect data for plugin "${pluginId}":`, err);
+        }
+      }
+    }
+    return allData;
+  }
+
+  /** Restore plugin data from a provided object (not localStorage) */
+  restorePluginDataFromObject(allData: Record<string, unknown>): void {
+    for (const [pluginId, plugin] of this.active) {
+      if (plugin.restoreCallback && allData[pluginId] !== undefined) {
+        try {
+          plugin.restoreCallback(allData[pluginId]);
+          console.log(`[Kernel] Restored data for plugin "${pluginId}" from server`);
+        } catch (err) {
+          console.error(`[Kernel] Failed to restore data for plugin "${pluginId}":`, err);
+        }
+      }
+    }
+  }
+
   async deactivate(pluginId: string): Promise<void> {
     const active = this.active.get(pluginId);
     if (!active) return;

@@ -92,3 +92,44 @@ export function restoreTopology(canvasAPI: CanvasAPI): boolean {
 export function clearSavedTopology() {
   localStorage.removeItem(STORAGE_KEY);
 }
+
+/** Restore topology from a data object (from server) instead of localStorage */
+export function restoreTopologyFromData(canvasAPI: CanvasAPI, data: { devices?: DeviceInstance[]; connections?: ConnectionInstance[] }): boolean {
+  try {
+    if (!data.devices || data.devices.length === 0) return false;
+
+    console.log(`[Persistence] Restoring from server: ${data.devices.length} devices, ${data.connections?.length ?? 0} connections`);
+
+    for (const device of data.devices) {
+      try {
+        const added = canvasAPI.addDevice(device.type, device.position, device.config, device.id);
+        canvasAPI.updateDevice(added.id, { label: device.label, size: device.size });
+      } catch (err) {
+        console.warn(`[Persistence] Failed to restore device ${device.label}:`, err);
+      }
+    }
+
+    for (const conn of data.connections ?? []) {
+      try {
+        canvasAPI.addConnection(conn.type, conn.sourceDeviceId, conn.sourcePortId, conn.targetDeviceId, conn.targetPortId);
+      } catch (err) {
+        console.warn(`[Persistence] Failed to restore connection:`, err);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[Persistence] Failed to restore from server data:', err);
+    return false;
+  }
+}
+
+/** Collect current topology as a plain object for saving to server */
+export function collectTopology(canvasStore: StoreApi<CanvasState>): SavedTopology {
+  const state = canvasStore.getState();
+  return {
+    devices: Array.from(state.devices.values()),
+    connections: Array.from(state.connections.values()),
+    version: 1,
+  };
+}

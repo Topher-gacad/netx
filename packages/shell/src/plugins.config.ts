@@ -17,11 +17,13 @@ import { cliSimulatorPlugin } from '@netx/plugin-cli-simulator';
 import { packetEnginePlugin } from '@netx/plugin-packet-engine';
 import { labSystemPlugin } from '@netx/plugin-lab-system';
 import { helloWorldPlugin } from '@netx/plugin-hello-world';
+import { lessonsPlugin } from '@netx/plugin-bootcamp';
 
 export const plugins: PluginModule[] = [
   basicDevicesPlugin,
   cliSimulatorPlugin,
   packetEnginePlugin,
   labSystemPlugin,
+  lessonsPlugin,
   helloWorldPlugin,
 ];

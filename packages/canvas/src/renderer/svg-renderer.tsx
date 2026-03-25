@@ -128,7 +128,10 @@ export function SVGRenderer({ store, canvasAPI, eventBus, children }: SVGRendere
     if (!device || !typeDef) return { x: 0, y: 0 };
 
     const port = typeDef.ports.find((p) => p.id === portId);
-    if (!port) return { x: device.position.x, y: device.position.y };
+    if (!port) {
+      // Fallback: use device center (not corner) — important for WiFi ports on cached types
+      return { x: device.position.x + device.size.width / 2, y: device.position.y + device.size.height / 2 };
+    }
 
     return {
       x: device.position.x + port.position.x * device.size.width,
@@ -216,14 +219,57 @@ export function SVGRenderer({ store, canvasAPI, eventBus, children }: SVGRendere
                   stroke="transparent"
                   strokeWidth={12}
                 />
-                {/* Actual visible cable */}
-                <Renderer
-                  id={conn.id}
-                  type={conn.type}
-                  sourcePosition={sourcePos}
-                  targetPosition={targetPos}
-                  selected={isSelected}
-                />
+                {/* Visible cable — styled by connection type */}
+                {typeDef?.renderer ? (
+                  <Renderer
+                    id={conn.id}
+                    type={conn.type}
+                    sourcePosition={sourcePos}
+                    targetPosition={targetPos}
+                    selected={isSelected}
+                  />
+                ) : (
+                  <>
+                    {/* Wireless connections get a special visual */}
+                    {conn.type === 'wireless' ? (
+                      <g>
+                        {/* Animated dashed line with WiFi color */}
+                        <line
+                          x1={sourcePos.x} y1={sourcePos.y}
+                          x2={targetPos.x} y2={targetPos.y}
+                          stroke={isSelected ? '#00d4ff' : '#00bceb'}
+                          strokeWidth={isSelected ? 2 : 1.5}
+                          strokeDasharray="4 6"
+                          strokeLinecap="round"
+                          opacity={0.6}
+                        />
+                        {/* WiFi signal icon at midpoint */}
+                        {(() => {
+                          const mx = (sourcePos.x + targetPos.x) / 2;
+                          const my = (sourcePos.y + targetPos.y) / 2;
+                          return (
+                            <g transform={`translate(${mx - 8}, ${my - 8})`}>
+                              <path d="M2,12 A10,10 0 0,1 14,12" fill="none" stroke="#00bceb" strokeWidth={1.2} opacity={0.4} />
+                              <path d="M4,12 A7,7 0 0,1 12,12" fill="none" stroke="#00bceb" strokeWidth={1.2} opacity={0.6} />
+                              <path d="M6,12 A4,4 0 0,1 10,12" fill="none" stroke="#00bceb" strokeWidth={1.2} opacity={0.8} />
+                              <circle cx="8" cy="13" r="1.5" fill="#00bceb" />
+                            </g>
+                          );
+                        })()}
+                      </g>
+                    ) : (
+                      <line
+                        data-connection-id={conn.id}
+                        x1={sourcePos.x} y1={sourcePos.y}
+                        x2={targetPos.x} y2={targetPos.y}
+                        stroke={isSelected ? '#00bceb' : (typeDef?.style?.color ?? '#4a9eff')}
+                        strokeWidth={isSelected ? 3 : (typeDef?.style?.width ?? 2)}
+                        strokeDasharray={typeDef?.style?.dashArray}
+                        strokeLinecap="round"
+                      />
+                    )}
+                  </>
+                )}
                 {/* Port labels on hover when selected */}
                 {isSelected && (
                   <>

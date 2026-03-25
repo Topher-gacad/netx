@@ -8,14 +8,14 @@
   <body>
     <div id="root"><p style="color:white;padding:20px;">Loading NetX...</p></div>
     <script>
-      // One-time migration: clear old data with mismatched port IDs (v1 → v2)
+      // One-time migration: clear old data (v3 — WiFi fix)
       try {
-        if (!localStorage.getItem('netx-port-v2')) {
+        if (!localStorage.getItem('netx-port-v3')) {
           localStorage.removeItem('netx-topology');
           localStorage.removeItem('netx-plugin-data');
           localStorage.removeItem('netx-cli-configs');
-          localStorage.setItem('netx-port-v2', '1');
-          console.log('[Migration] Cleared old topology data for port ID update');
+          localStorage.setItem('netx-port-v3', '1');
+          console.log('[Migration] Cleared old data for WiFi update');
         }
       } catch(e) {}
     </script>

@@ -1,7 +1,9 @@
 import { useStore } from 'zustand';
 import { uiStore } from '@netx/kernel';
+import { useAuth } from '../auth/AuthContext.js';
 
 export function Toolbar() {
+  const { user, logout } = useAuth();
   const toolbarItems = useStore(uiStore, (s) => s.toolbarItems);
 
   const sorted = [...toolbarItems].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
@@ -66,6 +68,41 @@ export function Toolbar() {
           })}
         </div>
       ))}
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* User menu */}
+      {user && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {user.role === 'admin' && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('netx:toggle-admin'))}
+              style={{
+                padding: '4px 10px', background: 'var(--warning)15',
+                border: '1px solid var(--warning)30', borderRadius: '4px',
+                color: 'var(--warning)', cursor: 'pointer', fontSize: '11px',
+              }}
+            >
+              Users
+            </button>
+          )}
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            {user.role === 'admin' && <span style={{ color: 'var(--warning)', marginRight: '4px' }}>Admin</span>}
+            {user.username}
+          </span>
+          <button
+            onClick={logout}
+            style={{
+              padding: '4px 10px', background: 'transparent',
+              border: '1px solid var(--border-color)', borderRadius: '4px',
+              color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px',
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
     </div>
   );
 }

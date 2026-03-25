@@ -57,6 +57,7 @@ export interface DeviceCLIState {
   hostname: string;
   mode: CLIMode;
   currentInterface?: string;
+  interfaceRange?: string[];
   currentVlan?: number;
   interfaces: Map<string, InterfaceConfig>;
   vlans: Map<number, string>;
@@ -188,7 +189,7 @@ function execUserMode(parts: string[], cmd: string, _raw: string, state: DeviceC
         output: [
           '  enable    Turn on privileged commands',
           '  exit      Exit from the EXEC',
-          '  ipconfig  Request IP via DHCP or view current IP',
+          '  ipconfig  View IP (/all), release (/release), or renew (/renew)',
           '  ping      Send echo messages',
           '  show      Show running system information',
           '  traceroute  Trace route to destination',
@@ -251,6 +252,18 @@ function execGlobalConfig(parts: string[], cmd: string, raw: string, state: Devi
     }
     case 'interface': {
       const available = Array.from(state.interfaces.keys());
+
+      // Handle "interface range Fa0/1-4" or "interface range Fa0/1, Fa0/5"
+      if (parts[1] === 'range') {
+        const rangeStr = parts.slice(2).join(' ');
+        const expandedPorts = expandInterfaceRange(rangeStr, available);
+        if (expandedPorts.length === 0) {
+          return { output: `% Invalid range: ${rangeStr}\n  Available: ${available.join(', ')}`, state };
+        }
+        // Apply interface-config to all ports in range — store them for batch config
+        return { output: `Configuring ${expandedPorts.length} interfaces: ${expandedPorts.join(', ')}`, state: { ...state, mode: 'interface-config', currentInterface: expandedPorts[0], interfaceRange: expandedPorts } };
+      }
+
       const ifName = resolveInterface(parts.slice(1).join(' '), available);
       if (!ifName) {
         return {
@@ -258,7 +271,7 @@ function execGlobalConfig(parts: string[], cmd: string, raw: string, state: Devi
           state,
         };
       }
-      return { output: '', state: { ...state, mode: 'interface-config', currentInterface: ifName } };
+      return { output: '', state: { ...state, mode: 'interface-config', currentInterface: ifName, interfaceRange: undefined } };
     }
     case 'vlan': {
       const vlanId = parseInt(parts[1]);
@@ -400,6 +413,8 @@ function execGlobalConfig(parts: string[], cmd: string, raw: string, state: Devi
 }
 
 function execInterfaceConfig(parts: string[], cmd: string, raw: string, state: DeviceCLIState): CLIResult {
+  // Get all interfaces to configure (single or range)
+  const targetInterfaces = state.interfaceRange ?? [state.currentInterface!];
   const ifName = state.currentInterface!;
   const iface = state.interfaces.get(ifName)!;
 
@@ -445,13 +460,16 @@ function execInterfaceConfig(parts: string[], cmd: string, raw: string, state: D
     }
     case 'no': {
       if (parts[1] === 'shutdown') {
-        const updated = { ...iface, shutdown: false };
         const interfaces = new Map(state.interfaces);
-        interfaces.set(ifName, updated);
-        return {
-          output: `%LINK-5-CHANGED: Interface ${ifName}, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface ${ifName}, changed state to up`,
-          state: { ...state, interfaces },
-        };
+        const msgs: string[] = [];
+        for (const tgt of targetInterfaces) {
+          const existing = interfaces.get(tgt);
+          if (existing) {
+            interfaces.set(tgt, { ...existing, shutdown: false });
+            msgs.push(`%LINK-5-CHANGED: Interface ${tgt}, changed state to up`);
+          }
+        }
+        return { output: msgs.join('\n'), state: { ...state, interfaces } };
       }
       if (parts[1] === 'ip' && parts[2] === 'address') {
         const updated = { ...iface, ip: undefined, mask: undefined };
@@ -462,13 +480,16 @@ function execInterfaceConfig(parts: string[], cmd: string, raw: string, state: D
       return invalidInput(raw, state);
     }
     case 'shutdown': {
-      const updated = { ...iface, shutdown: true };
       const interfaces = new Map(state.interfaces);
-      interfaces.set(ifName, updated);
-      return {
-        output: `%LINK-5-CHANGED: Interface ${ifName}, changed state to administratively down`,
-        state: { ...state, interfaces },
-      };
+      const msgs: string[] = [];
+      for (const tgt of targetInterfaces) {
+        const existing = interfaces.get(tgt);
+        if (existing) {
+          interfaces.set(tgt, { ...existing, shutdown: true });
+          msgs.push(`%LINK-5-CHANGED: Interface ${tgt}, changed state to administratively down`);
+        }
+      }
+      return { output: msgs.join('\n'), state: { ...state, interfaces } };
     }
     case 'description': {
       const desc = parts.slice(1).join(' ');
@@ -480,10 +501,12 @@ function execInterfaceConfig(parts: string[], cmd: string, raw: string, state: D
     case 'switchport': {
       // switchport mode access
       if (parts[1] === 'mode' && parts[2] === 'access') {
-        const updated = { ...iface, switchportMode: 'access' as const };
         const interfaces = new Map(state.interfaces);
-        interfaces.set(ifName, updated);
-        return { output: '', state: { ...state, interfaces } };
+        for (const tgt of targetInterfaces) {
+          const existing = interfaces.get(tgt);
+          if (existing) interfaces.set(tgt, { ...existing, switchportMode: 'access' as const });
+        }
+        return { output: targetInterfaces.length > 1 ? `Applied to ${targetInterfaces.length} interfaces` : '', state: { ...state, interfaces } };
       }
       // switchport mode trunk
       if (parts[1] === 'mode' && parts[2] === 'trunk') {
@@ -498,10 +521,12 @@ function execInterfaceConfig(parts: string[], cmd: string, raw: string, state: D
         if (isNaN(vlanId) || vlanId < 1 || vlanId > 4094) {
           return { output: '% Invalid VLAN ID (1-4094)', state };
         }
-        const updated = { ...iface, switchportMode: 'access' as const, accessVlan: vlanId };
         const interfaces = new Map(state.interfaces);
-        interfaces.set(ifName, updated);
-        return { output: '', state: { ...state, interfaces } };
+        for (const tgt of targetInterfaces) {
+          const existing = interfaces.get(tgt);
+          if (existing) interfaces.set(tgt, { ...existing, switchportMode: 'access' as const, accessVlan: vlanId });
+        }
+        return { output: targetInterfaces.length > 1 ? `Applied to ${targetInterfaces.length} interfaces` : '', state: { ...state, interfaces } };
       }
       // switchport trunk allowed vlan <ids>
       if (parts[1] === 'trunk' && parts[2] === 'allowed' && parts[3] === 'vlan') {
@@ -549,10 +574,28 @@ function execVlanConfig(parts: string[], cmd: string, _raw: string, state: Devic
       vlans.set(vlanId, name);
       return { output: '', state: { ...state, vlans } };
     }
+    case 'state': {
+      // state active | state suspend
+      const vlanState = parts[1];
+      if (vlanState === 'active' || vlanState === 'suspend') {
+        return { output: '', state }; // Acknowledged but we don't track suspend state
+      }
+      return { output: '% Usage: state active | state suspend', state };
+    }
     case 'exit':
       return { output: '', state: { ...state, mode: 'global-config', currentVlan: undefined } };
     case 'end':
       return { output: '', state: { ...state, mode: 'privileged', currentVlan: undefined } };
+    case '?':
+    case 'help':
+      return {
+        output: [
+          '  name      Set VLAN name',
+          '  state     Set VLAN state (active/suspend)',
+          '  exit      Exit VLAN configuration',
+        ].join('\n'),
+        state,
+      };
     default:
       return invalidInput(cmd, state);
   }
@@ -788,6 +831,31 @@ function handleIPConfig(parts: string[], state: DeviceCLIState, canvasAPI: Canva
     return { output: lines.join('\n'), state };
   }
 
+  if (parts[1] === '/release') {
+    // Release all IP addresses — clear all interfaces
+    const interfaces = new Map(state.interfaces);
+    const released: string[] = [];
+    for (const [name, iface] of interfaces) {
+      if (iface.ip) {
+        released.push(`  ${name}: released ${iface.ip}`);
+        interfaces.set(name, { ...iface, ip: undefined, mask: undefined });
+      }
+    }
+    if (released.length === 0) {
+      return { output: 'No IP addresses to release.', state };
+    }
+    return {
+      output: [
+        'Releasing IP addresses...',
+        '',
+        ...released,
+        '',
+        'All IP addresses released. Use "ipconfig /renew" to get a new IP from DHCP.',
+      ].join('\n'),
+      state: { ...state, interfaces },
+    };
+  }
+
   if (parts[1] === '/renew' || parts[1] === 'dhcp') {
     // Find a DHCP server on the network by emitting an event
     if (eventBus) {
@@ -868,7 +936,7 @@ function handleIPConfig(parts: string[], state: DeviceCLIState, canvasAPI: Canva
     return { output: 'DHCP request failed — no DHCP server found on the network.\nConfigure a DHCP pool on the Router: ip dhcp pool <name> → network <ip> <mask> → default-router <gw>', state };
   }
 
-  return { output: '% Usage: ipconfig, ipconfig /all, ipconfig /renew, ipconfig dhcp', state };
+  return { output: '% Usage: ipconfig, ipconfig /all, ipconfig /release, ipconfig /renew', state };
 }
 
 // Global DHCP server registry — populated when configs change
@@ -915,6 +983,42 @@ function buildRunningConfig(state: DeviceCLIState): string {
 
   lines.push('!', 'end');
   return lines.join('\n');
+}
+
+// Expand "Fa0/1-4" or "Fa0/1,Fa0/3,Fa0/5" into individual interface names
+function expandInterfaceRange(rangeStr: string, available: string[]): string[] {
+  const result: string[] = [];
+
+  // Handle comma-separated: "Fa0/1, Fa0/5, Fa0/7"
+  const segments = rangeStr.split(',').map((s) => s.trim());
+
+  for (const seg of segments) {
+    // Check for dash range: "Fa0/1-4" or "FastEthernet0/1-4"
+    const dashMatch = seg.match(/^([a-zA-Z]+)([\d/]+)-(\d+)$/i);
+    if (dashMatch) {
+      const prefix = dashMatch[1];
+      const startPart = dashMatch[2];
+      const endNum = parseInt(dashMatch[3]);
+
+      // Extract the last number from startPart
+      const numMatch = startPart.match(/^(.*)\/(\d+)$/);
+      if (numMatch) {
+        const basePath = numMatch[1];
+        const startNum = parseInt(numMatch[2]);
+        for (let i = startNum; i <= endNum; i++) {
+          const ifStr = `${prefix}${basePath}/${i}`;
+          const resolved = resolveInterface(ifStr, available);
+          if (resolved) result.push(resolved);
+        }
+      }
+    } else {
+      // Single interface
+      const resolved = resolveInterface(seg, available);
+      if (resolved) result.push(resolved);
+    }
+  }
+
+  return result;
 }
 
 function resolveInterface(input: string, availableInterfaces: string[]): string | undefined {

@@ -33,7 +33,17 @@
       "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/plugin-cli-simulator/src/CLIPanel.tsx\")",
       "Bash(pkill -f \"vite\")",
       "Bash(pkill -f \"node.*shell\")",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(ls -la /c/Users/USER/Desktop/netx/packages/plugin-bootcamp/src/curriculum/module-*.ts)",
+      "Bash(wc:*)",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/sdk/src/index.ts\")",
+      "Bash(curl -s \"http://localhost:3000/@fs/C:/Users/USER/Desktop/netx/packages/sdk/src/types/ui.ts\")",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(head -20 grep -A2 registerToolbarItem /c/Users/USER/Desktop/netx/packages/plugin-*/src/index.tsx /c/Users/USER/Desktop/netx/packages/plugin-bootcamp/src/index.tsx)",
+      "Bash(/dev/null grep:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)"
     ]
   }
 }

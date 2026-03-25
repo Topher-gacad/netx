@@ -1,5 +1,5 @@
 import type { PluginModule } from '@netx/sdk';
-import { LabPanel, setLabCanvasAPI, triggerLabCheck } from './LabPanel.js';
+import { LabPanel, setLabCanvasAPI, triggerLabCheck, startLabById } from './LabPanel.js';
 import { updateDeviceConfig, recordPingSuccess } from './lab-validator.js';
 
 export const labSystemPlugin: PluginModule = {
@@ -49,27 +49,7 @@ export const labSystemPlugin: PluginModule = {
       }),
     );
 
-    // Toolbar button
-    ctx.onDispose(
-      ctx.ui.registerToolbarItem({
-        id: 'labs-toggle',
-        group: 'learn',
-        label: 'Labs',
-        icon: ({ size }: { size: number }) => (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-            <path d="M4 4h16v16H4z" stroke="currentColor" strokeWidth="1.5" rx="2" />
-            <line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="8" y1="13" x2="14" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <line x1="8" y1="17" x2="12" y2="17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        ),
-        onClick: () => {
-          ctx.ui.notify('Open the "Labs" tab in the right panel to start a lab', 'info');
-        },
-        tooltip: 'Guided networking labs',
-        priority: 15,
-      }),
-    );
+    // Labs accessible via right panel tab — no toolbar button needed
 
     // Status bar
     ctx.onDispose(
@@ -78,13 +58,28 @@ export const labSystemPlugin: PluginModule = {
         align: 'right',
         component: () => (
           <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-            Labs: <span style={{ color: '#00ff88' }}>12 available</span>
+            Labs: <span style={{ color: '#00ff88' }}>18 available</span>
           </span>
         ),
         priority: 30,
       }),
     );
 
-    console.log('[LabSystem] Plugin activated — 4 labs available');
+    // Listen for bootcamp lab launch requests
+    window.addEventListener('bootcamp:launch-lab', ((e: CustomEvent) => {
+      const { labId } = e.detail;
+      startLabById(labId);
+      ctx.ui.notify(`Lab started: ${labId}`, 'info');
+    }) as EventListener);
+
+    // Also listen via event bus
+    ctx.onDispose(
+      ctx.events.on('bootcamp:launch-lab', (payload: unknown) => {
+        const { labId } = payload as { labId: string };
+        startLabById(labId);
+      }),
+    );
+
+    console.log('[LabSystem] Plugin activated');
   },
 };
